@@ -1,5 +1,5 @@
 {
-  "name": "hardhat-project",
+  "name": "anomity",
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
