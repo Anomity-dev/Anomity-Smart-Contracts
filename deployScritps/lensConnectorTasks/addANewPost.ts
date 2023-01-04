@@ -26,10 +26,10 @@ async function main() {
         const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
         console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
         await lensHUBConnectorTestnet.deployed();
-
         await lensHUBConnectorTestnet.post(
-            "https://gateway.pinata.cloud/ipfs/bafkreifn6mcnue2pv27kcnuonwopftp4ragrs37mucrfel4grxwzojxwii"
+            "https://gateway.pinata.cloud/ipfs/bafkreidzdy4rxporvpzowmo6pam44xycuga2rgacvz654cvqyk3tndwj6u"
         )
+
         console.log("Post uploaded", lensHUBConnectorTestnet.address);
     })
 }

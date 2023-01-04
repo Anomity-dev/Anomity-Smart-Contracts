@@ -28,8 +28,8 @@ async function main() {
         await lensHUBConnectorTestnet.deployed();
 
         await lensHUBConnectorTestnet.createProfile(
-            'whistleblowerontestnetlens',
-            "https://gateway.pinata.cloud/ipfs/QmY7qZqSB1s5cS39MGqTFAPh9Xx2xNzbz3MfHG1fhLYpVF"
+            'anomityontestnet',
+            "https://gateway.pinata.cloud/ipfs/QmRQ87GcoGG95jvkrKebKZAafCUPVtN9PRSSaZntUz9BZg"
         )
         console.log("Profile created", lensHUBConnectorTestnet.address);
         let profile = await lensHUBConnectorTestnet.lensTokenId();
@@ -37,7 +37,7 @@ async function main() {
         // console.log(json);
         json[chainId] = {
             ...json[chainId],
-            "profileId": profile
+            "profileId": profile.toString()
         }
         // console.log(json);
         fs.writeFile("address.json", JSON.stringify(json), (err: any) => {
