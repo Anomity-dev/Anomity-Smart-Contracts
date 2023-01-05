@@ -36,7 +36,7 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable {
     function createProfile(
         string memory _handle,
         string memory _imageURI
-    ) external {
+    ) external onlyOwner {
         handle = _handle;
         imageURI = _imageURI;
         //        require(lensTokenId == 0, "Lens: lensTokenId is already set");
