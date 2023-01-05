@@ -26,9 +26,10 @@ async function main() {
         const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
         console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
         await lensHUBConnectorTestnet.deployed();
+        console.log("Post uploaded", chainId, lensHUBConnectorTestnet.address, await lensHUBConnectorTestnet.owner());
 
         await lensHUBConnectorTestnet.createProfile(
-            'anomityontestnet',
+            'anomitypage',
             "https://gateway.pinata.cloud/ipfs/QmRQ87GcoGG95jvkrKebKZAafCUPVtN9PRSSaZntUz9BZg"
         )
         console.log("Profile created", lensHUBConnectorTestnet.address);

@@ -27,7 +27,7 @@ async function main() {
         console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
         await lensHUBConnectorTestnet.deployed();
         await lensHUBConnectorTestnet.post(
-            "https://gateway.pinata.cloud/ipfs/bafkreidzdy4rxporvpzowmo6pam44xycuga2rgacvz654cvqyk3tndwj6u"
+            "https://gateway.pinata.cloud/ipfs/bafkreift4wjjcnue4fd6dwm5vdwulboy2c224qob75qlrkbfshkbkgkuge"
         )
 
         console.log("Post uploaded", lensHUBConnectorTestnet.address);

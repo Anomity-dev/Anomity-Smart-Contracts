@@ -66,7 +66,7 @@ async function main() {
             "pool": pool.address,
             "startBlock": n.blockNumber,
         }
-        // console.log(json);
+        console.log(json[chainId], chainId, pool.address);
         fs.writeFile("address.json", JSON.stringify(json), (err: any) => {
             if (err) {
                 console.log(err);

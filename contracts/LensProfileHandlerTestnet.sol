@@ -15,6 +15,7 @@ contract LensHUBConnectorTestnet is ReentrancyGuard, Ownable {
     mapping(address => bool) public verifiedAddresses;
 
     uint256 public lensTokenId;
+    uint256 public lensTokenIndex;
     string public  handle;
     string public  imageURI;
 
@@ -35,10 +36,10 @@ contract LensHUBConnectorTestnet is ReentrancyGuard, Ownable {
     function createProfile(
         string memory _handle,
         string memory _imageURI
-    ) external onlyOwner {
+    ) external {
         handle = _handle;
         imageURI = _imageURI;
-        require(lensTokenId == 0, "Lens: lensTokenId is already set");
+//        require(lensTokenId == 0, "Lens: lensTokenId is already set");
         //Create lens profile
         IMockProfileCreationProxy profileCreator = IMockProfileCreationProxy(PROFILE_CREATOR);
 
@@ -54,7 +55,18 @@ contract LensHUBConnectorTestnet is ReentrancyGuard, Ownable {
         profileCreator.proxyCreateProfile(vars);
 
         //Get lens token tokenId
-        lensTokenId = ILensHub(HUB).tokenOfOwnerByIndex(address(this), 0);
+        lensTokenId = ILensHub(HUB).tokenOfOwnerByIndex(address(this), lensTokenIndex);
+        lensTokenIndex++;
+    }
+
+    function switchProfile(uint256 _lensTokenId) external {
+        require(lensTokenId != _lensTokenId, "Lens: lensTokenId is already set");
+        lensTokenId = _lensTokenId;
+    }
+
+    function acceptProfileNFT(uint256 _lensTokenId) external {
+        require(lensTokenId == _lensTokenId, "Lens: lensTokenId is not set");
+        ILensHub(HUB).safeTransferFrom(address(this), msg.sender, lensTokenId);
     }
 
 

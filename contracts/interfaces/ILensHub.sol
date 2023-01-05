@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 /**
  * @title ILensHub
  * @author Lens Protocol
@@ -8,7 +8,7 @@ pragma solidity ^0.8.13;
  * @notice This is the interface for the LensHub contract, the main entry point for the Lens Protocol.
  * You'll find all the events and external functions, as well as the reasoning behind them here.
  */
-interface ILensHub {
+interface ILensHub is IERC721{
   /**
    * @notice A struct containing the parameters required for the `post()` function.
    *
