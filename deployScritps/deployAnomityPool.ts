@@ -44,6 +44,8 @@ async function main() {
         // deploy verifier
         const Verifier = await ethers.getContractFactory("Verifier", owner);
         const verifier = await Verifier.deploy();
+        await verifier.deployed();
+
         console.log("verifier deployed to:", verifier.address);
 
         // deploy pool

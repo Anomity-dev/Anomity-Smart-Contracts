@@ -7,14 +7,14 @@ async function main() {
 
     console.log("Deploying LensHUBConnectorTestnet contract...", owner.address, await owner.getBalance());
     //
-    const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorTestnet", owner);
+    const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorMainnet", owner);
     const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.deploy(
         "0xDb46d1Dc155634FbC732f92E853b10B288AD5a1d",
-        "0x2172758eBb894c43E0BE01e37D065118317D7eeC",
+        "0xa31FF85E840ED117E172BC9Ad89E55128A999205",
         "0x1eeC6ecCaA4625da3Fa6Cd6339DBcc2418710E8a"
     );
     console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
-    await lensHUBConnectorTestnet.deployed();
+    // await lensHUBConnectorTestnet.deployed();
 
     const chainId = await owner.getChainId();
 

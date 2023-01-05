@@ -7,7 +7,25 @@ import "./interfaces/ILensHub.sol";
 import "./interfaces/IMockProfileCreationProxy.sol";
 
 
-contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable {
+interface IERC721Receiver {
+    /**
+     * @dev Whenever an {IERC721} `tokenId` token is transferred to this contract via {IERC721-safeTransferFrom}
+     * by `operator` from `from`, this function is called.
+     *
+     * It must return its Solidity selector to confirm the token transfer.
+     * If any other value is returned or the interface is not implemented by the recipient, the transfer will be reverted.
+     *
+     * The selector can be obtained in Solidity with `IERC721.onERC721Received.selector`.
+     */
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4);
+}
+
+contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable, IERC721Receiver {
     address public HUB;
     address public COLLECT_MODULE;
     address public PROFILE_CREATOR;
@@ -15,7 +33,6 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable {
     mapping(address => bool) public verifiedAddresses;
 
     uint256 public lensTokenId;
-    uint256 public lensTokenIndex;
     string public  handle;
     string public  imageURI;
 
@@ -33,49 +50,28 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable {
 
     fallback() external payable {}
 
-    function createProfile(
-        string memory _handle,
-        string memory _imageURI
-    ) external onlyOwner {
-        handle = _handle;
-        imageURI = _imageURI;
-        //        require(lensTokenId == 0, "Lens: lensTokenId is already set");
-        //Create lens profile
-        IMockProfileCreationProxy profileCreator = IMockProfileCreationProxy(PROFILE_CREATOR);
-
-        IMockProfileCreationProxy.CreateProfileData memory vars = IMockProfileCreationProxy.CreateProfileData({
-        to : address(this),
-        handle : _handle,
-        imageURI : _imageURI,
-        followModule : address(0),
-        followModuleInitData : "",
-        followNFTURI : ""
-        });
-
-        profileCreator.proxyCreateProfile(vars);
-
-        //Get lens token tokenId
-        lensTokenId = ILensHub(HUB).tokenOfOwnerByIndex(address(this), lensTokenIndex);
-        lensTokenIndex++;
-    }
-
-    function switchProfile(uint256 _lensTokenId) external {
-        require(lensTokenId != _lensTokenId, "Lens: lensTokenId is already set");
+    function switchProfile(uint256 _lensTokenId) external onlyOwner {
+        ILensHub hub = ILensHub(HUB);
+        require(hub.ownerOf(_lensTokenId) == address(this), "Lens: not owner of lensTokenId");
         lensTokenId = _lensTokenId;
     }
 
-    function acceptProfileNFT(uint256 _lensTokenId) external {
-        require(lensTokenId == _lensTokenId, "Lens: lensTokenId is not set");
-        ILensHub(HUB).safeTransferFrom(address(this), msg.sender, lensTokenId);
+    function returnProfileNFT(uint256 _lensTokenId) external onlyOwner {
+        ILensHub(HUB).transferFrom(address(this), msg.sender, _lensTokenId);
     }
 
-
-
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
 
     function setVerifiedAddress(address addr, bool isVerified) public onlyOwner {
         verifiedAddresses[addr] = isVerified;
     }
-
 
     function post(
         string memory word
@@ -84,12 +80,12 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable {
         require(verifiedAddresses[msg.sender], "Lens: sender is not verified");
 
         ILensHub.PostData memory data = ILensHub.PostData({
-        profileId : lensTokenId,
-        contentURI : word,
-        collectModule : COLLECT_MODULE,
-        collectModuleInitData : abi.encode(false),
-        referenceModule : address(0),
-        referenceModuleInitData : ""
+            profileId : lensTokenId,
+            contentURI : word,
+            collectModule : COLLECT_MODULE,
+            collectModuleInitData : abi.encode(false),
+            referenceModule : address(0),
+            referenceModuleInitData : ""
         });
 
 

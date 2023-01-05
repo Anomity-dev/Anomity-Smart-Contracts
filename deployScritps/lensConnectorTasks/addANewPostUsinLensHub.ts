@@ -1,6 +1,6 @@
 import {ethers} from "hardhat";
 import fs from "fs";
-
+import { defaultAbiCoder } from 'ethers/lib/utils';
 async function main() {
     const owner = (await ethers.getSigners())[0];
 
@@ -19,21 +19,17 @@ async function main() {
             return;
         }
         const chainId = await owner.getChainId();
-
+        const lensHUB = await ethers.getContractAt("ILensHub", json[chainId]["LENSHub"]);
+        // const lensHUB = await LensHUB.attach(json[chainId]["LENSHub"]);
+        await lensHUB.post({
+            profileId: 20759,
+            contentURI: "https://gateway.pinata.cloud/ipfs/bafkreifkbzmjrniy646unakjdwozza6x4jgzzm2aydvcehqrbsyt7ydfzu",
+            collectModule: "0xa31FF85E840ED117E172BC9Ad89E55128A999205",
+            collectModuleInitData:  [],
+            referenceModule: "0x0000000000000000000000000000000000000000",
+            referenceModuleInitData: [],
+        })
         //
-        console.log("LensConnector ...", json[chainId]["LensHUBConnectorTestnet"]);
-        const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorMainnet", owner);
-        const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
-        console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
-        await lensHUBConnectorTestnet.deployed();
-
-        console.log("adding a new post",await lensHUBConnectorTestnet.lensTokenId());
-
-        await lensHUBConnectorTestnet.post(
-            "https://gateway.pinata.cloud/ipfs/bafkreifkbzmjrniy646unakjdwozza6x4jgzzm2aydvcehqrbsyt7ydfzu"
-        )
-
-        console.log("Post uploaded", lensHUBConnectorTestnet.address);
     })
 }
 

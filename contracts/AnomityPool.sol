@@ -14,7 +14,7 @@ interface IVerifier {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[4] memory input
+        uint[5] memory input
     ) external view returns (bool);
 }
 
@@ -79,21 +79,24 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         emit Deposit(_commitment, insertedIndex, block.timestamp);
     }
 
-    function withdraw(uint[2] memory a,
+    function withdrawProof(uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
         bytes32 _root,
         bytes32 _nullifierHash,
-        string memory contentIpfsURI) external nonReentrant {
+        string memory contentIpfsURI,
+        address relayer
+    ) external nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[4] memory pubSignals = [
+        uint[5] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(0)
+        uint256(0),
+        uint256(uint160(relayer))
         ];
 
         require(
@@ -108,7 +111,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
         nullifierHashes[_nullifierHash] = true;
 
-        require(IERC20(usdcAddress).transfer(msg.sender, depositAmount), "Lens: transferFrom failed");
+        require(IERC20(usdcAddress).transfer(relayer, depositAmount), "Lens: transferFrom failed");
     }
 
     function verifyAndPost(
@@ -117,17 +120,19 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uint[2] memory c,
         bytes32 _root,
         bytes32 _nullifierHash,
-        string memory contentIpfsURI
+        string memory contentIpfsURI,
+        address relayer
     ) external nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[4] memory pubSignals = [
+        uint[5] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(1)
+        uint256(1),
+        uint256(uint160(relayer))
         ];
 
         require(
@@ -142,7 +147,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
         nullifierHashes[_nullifierHash] = true;
 
-        require(IERC20(usdcAddress).transfer(msg.sender, depositAmount), "Lens: transferFrom failed");
+        require(IERC20(usdcAddress).transfer(relayer, depositAmount), "Lens: transferFrom failed");
 
         lensHubConnector.post(contentIpfsURI);
 
@@ -159,17 +164,19 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uint[2] memory c,
         bytes32 _root,
         bytes32 _nullifierHash,
-        string memory contentIpfsURI
+        string memory contentIpfsURI,
+        address relayer
     ) public view returns (bool) {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[4] memory pubSignals = [
+        uint[5] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(1)
+        uint256(1),
+        uint256(uint160(relayer))
         ];
 
         return verifier.verifyProof(
