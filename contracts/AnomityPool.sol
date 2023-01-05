@@ -34,11 +34,14 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
 
+    address public uniswapRouter;
+
+
     uint256 public depositAmount;
     uint256 lensTokenId;
     string handle;
 
-    event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
+    event Deposit(bytes32[] commitment, uint32 leafIndex, uint256 timestamp);
     event VerifyAndPost(bytes32 nullifierHash, address relayer, string contentIPFSURI);
 
     /**
@@ -55,18 +58,92 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uint32 _merkleTreeHeight,
         uint256 _depositAmount,
         address _lensHubConnector,
+        address _uniswapRouter,
         address _usdcAddress
     ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
         verifier = _verifier;
         depositAmount = _depositAmount;
         usdcAddress = _usdcAddress;
         lensHubConnector = ILensHubConnector(_lensHubConnector);
+        uniswapRouter = _uniswapRouter;
     }
 
-    function depositWithUSDC(bytes32 _commitment) external nonReentrant {
-        IERC20 usdc = IERC20(usdcAddress);
-        require(usdc.transferFrom(msg.sender, address(this), depositAmount), "anomity: transferFrom failed");
+    function checkAllowance(address _token, address _spender, uint256 _amount) internal view returns (bool) {
+        return IERC20(_token).allowance(_spender, address(this)) >= _amount;
+    }
+
+    function swapPathToUSDC(uint256 depositAmountForAll, address[] calldata path, uint256 initialTokenAmount) internal returns (uint256) {
+        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
+
+        if (!checkAllowance(path[0], uniswapRouter, initialTokenAmount)) {
+            IERC20(path[0]).approve(uniswapRouter, type(uint256).max);
+        }
+
+        uint256[] memory amounts = uniswapRouter.swapTokensForExactTokens(depositAmountForAll, initialTokenAmount, path, address(this), block.timestamp);
+
+        return amounts[0];
+    }
+
+
+    function swapMaticForUSDC(uint256 depositAmountForAll) internal returns (uint256) {
+        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
+        address factory = uniswapRouter.factory();
+
+        address[] memory path = new address[](2);
+        path[0] = uniswapRouter.WETH();
+        path[1] = usdc;
+
+        uint256[] memory amounts = uniswapRouter.swapETHForExactTokens{value : msg.value}(depositAmountForAll, path, address(this), block.timestamp);
+
+        return amounts[0];
+    }
+
+
+    function depositWithOtherToken(bytes32[] memory _commitments, address[] calldata path, uint256 initialTokenAmount) external nonReentrant {
+        let depositAmountForAll = depositAmount * _commitments.length;
+        IERC20 usdc = IERC20(path[0]);
+
+        require(usdc.transferFrom(msg.sender, address(this), initialTokenAmount), "anomity: transferFrom failed");
+
+        uint256 usedAmount = swapPathToUSDC(depositAmountForAll, path, initialTokenAmount);
+
+        if (usedAmount < initialTokenAmount) {
+            require(usdc.transfer(msg.sender, initialTokenAmount - usedAmount));
+        }
+
         deposit(_commitment);
+    }
+
+
+    function depositWithMatic(bytes32[] memory _commitments) external payable nonReentrant {
+        let depositAmountForAll = depositAmount * _commitments.length;
+
+        uint256 amount = msg.value;
+        uint256 usedAmount = swapMaticForUSDC(depositAmountForAll);
+        if (usedAmount < amount) {
+            payable(msg.sender).transfer(amount - usedAmount);
+        }
+        depositBulk(_commitment);
+    }
+
+
+    function depositWithUSDC(bytes32[] memory _commitments) external nonReentrant {
+        let depositAmountForAll = depositAmount * _commitments.length;
+
+        IERC20 usdc = IERC20(usdcAddress);
+        require(usdc.transferFrom(msg.sender, address(this), depositAmountForAll), "anomity: transferFrom failed");
+
+        depositBulk(_commitments);
+    }
+
+    function depositBulk(bytes32[] memory _commitments) internal {
+        let startingIndex = _nextIndex;
+
+        for (uint256 i = 0; i < _commitments.length; i++) {
+            deposit(_commitments[i], i == _commitments.length ? true : false);
+        }
+
+        emit Deposit(_commitments, startingIndex, block.timestamp);
     }
 
 
@@ -75,8 +152,6 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-
-        emit Deposit(_commitment, insertedIndex, block.timestamp);
     }
 
     function withdrawProof(uint[2] memory a,
@@ -200,5 +275,13 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
                 spent[i] = true;
             }
         }
+    }
+
+    function calculateFee(address[] calldata path) public view returns (uint256) {
+        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
+
+        uint256[] memory amounts = uniswapRouter.getAmountsIn(depositAmount, path);
+
+        return amounts[0];
     }
 }

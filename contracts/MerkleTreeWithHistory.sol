@@ -67,7 +67,7 @@ contract MerkleTreeWithHistory {
     return hashLeftRight(hasher, _left, _right);
   }
 
-  function _insert(bytes32 _leaf) internal returns (uint32 index) {
+  function _insert(bytes32 _leaf, bool updateRoot) internal returns (uint32 index) {
     uint32 _nextIndex = nextIndex;
     require(_nextIndex != uint32(2)**levels, "Merkle tree is full. No more leaves can be added");
     uint32 currentIndex = _nextIndex;
@@ -88,7 +88,9 @@ contract MerkleTreeWithHistory {
       currentIndex /= 2;
     }
     currentRoot = currentLevelHash;
-    roots[currentRoot] = true;
+    if (updateRoot) {
+      roots[currentRoot] = true;
+    }
 
     nextIndex = _nextIndex + 1;
     return _nextIndex;
