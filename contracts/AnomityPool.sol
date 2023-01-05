@@ -14,7 +14,7 @@ interface IVerifier {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[3] memory input
+        uint[4] memory input
     ) external view returns (bool);
 }
 
@@ -79,6 +79,37 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         emit Deposit(_commitment, insertedIndex, block.timestamp);
     }
 
+    function withdraw(uint[2] memory a,
+        uint[2][2] memory b,
+        uint[2] memory c,
+        bytes32 _root,
+        bytes32 _nullifierHash,
+        string memory contentIpfsURI) external nonReentrant {
+        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
+        require(isKnownRoot(_root), "Cannot find your merkle root");
+        bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
+
+        uint[4] memory pubSignals = [
+        uint256(_root),
+        uint256(_nullifierHash),
+        uint256(contentIpfsURIHash) >> 128,
+        uint256(0)
+        ];
+
+        require(
+            verifier.verifyProof(
+                a,
+                b,
+                c,
+                pubSignals
+            ),
+            "Invalid withdraw proof"
+        );
+
+        nullifierHashes[_nullifierHash] = true;
+
+        require(IERC20(usdcAddress).transfer(msg.sender, depositAmount), "Lens: transferFrom failed");
+    }
 
     function verifyAndPost(
         uint[2] memory a,
@@ -92,10 +123,11 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[3] memory pubSignals = [
-            uint256(_root),
-            uint256(_nullifierHash),
-            uint256(contentIpfsURIHash) >> 128
+        uint[4] memory pubSignals = [
+        uint256(_root),
+        uint256(_nullifierHash),
+        uint256(contentIpfsURIHash) >> 128,
+        uint256(1)
         ];
 
         require(
@@ -133,10 +165,11 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[3] memory pubSignals = [
-            uint256(_root),
-            uint256(_nullifierHash),
-            uint256(contentIpfsURIHash) >> 128
+        uint[4] memory pubSignals = [
+        uint256(_root),
+        uint256(_nullifierHash),
+        uint256(contentIpfsURIHash) >> 128,
+        uint256(1)
         ];
 
         return verifier.verifyProof(
