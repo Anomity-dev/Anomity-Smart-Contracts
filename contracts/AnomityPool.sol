@@ -73,13 +73,13 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     }
 
     function swapPathToUSDC(uint256 depositAmountForAll, address[] calldata path, uint256 initialTokenAmount) internal returns (uint256) {
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
+        IUniswapV2Router02 uniswapRouterObject = IUniswapV2Router02(uniswapRouter);
 
         if (!checkAllowance(path[0], uniswapRouter, initialTokenAmount)) {
             IERC20(path[0]).approve(uniswapRouter, type(uint256).max);
         }
 
-        uint256[] memory amounts = uniswapRouter.swapTokensForExactTokens(depositAmountForAll, initialTokenAmount, path, address(this), block.timestamp);
+        uint256[] memory amounts = uniswapRouterObject.swapTokensForExactTokens(depositAmountForAll, initialTokenAmount, path, address(this), block.timestamp);
 
         return amounts[0];
     }
@@ -91,7 +91,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
         address[] memory path = new address[](2);
         path[0] = uniswapRouter.WETH();
-        path[1] = usdc;
+        path[1] = usdcAddress;
 
         uint256[] memory amounts = uniswapRouter.swapETHForExactTokens{value : msg.value}(depositAmountForAll, path, address(this), block.timestamp);
 
@@ -100,7 +100,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
 
     function depositWithOtherToken(bytes32[] memory _commitments, address[] calldata path, uint256 initialTokenAmount) external nonReentrant {
-        let depositAmountForAll = depositAmount * _commitments.length;
+        uint256 depositAmountForAll = depositAmount * _commitments.length;
         IERC20 usdc = IERC20(path[0]);
 
         require(usdc.transferFrom(msg.sender, address(this), initialTokenAmount), "anomity: transferFrom failed");
@@ -111,24 +111,24 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
             require(usdc.transfer(msg.sender, initialTokenAmount - usedAmount));
         }
 
-        deposit(_commitment);
+        depositBulk(_commitments);
     }
 
 
     function depositWithMatic(bytes32[] memory _commitments) external payable nonReentrant {
-        let depositAmountForAll = depositAmount * _commitments.length;
+        uint256 depositAmountForAll = depositAmount * _commitments.length;
 
         uint256 amount = msg.value;
         uint256 usedAmount = swapMaticForUSDC(depositAmountForAll);
         if (usedAmount < amount) {
             payable(msg.sender).transfer(amount - usedAmount);
         }
-        depositBulk(_commitment);
+        depositBulk(_commitments);
     }
 
 
     function depositWithUSDC(bytes32[] memory _commitments) external nonReentrant {
-        let depositAmountForAll = depositAmount * _commitments.length;
+        uint256 depositAmountForAll = depositAmount * _commitments.length;
 
         IERC20 usdc = IERC20(usdcAddress);
         require(usdc.transferFrom(msg.sender, address(this), depositAmountForAll), "anomity: transferFrom failed");
@@ -137,20 +137,20 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     }
 
     function depositBulk(bytes32[] memory _commitments) internal {
-        let startingIndex = _nextIndex;
+        uint32 startingIndex = nextIndex;
 
         for (uint256 i = 0; i < _commitments.length; i++) {
-            deposit(_commitments[i], i == _commitments.length ? true : false);
+            deposit(_commitments[i], i == _commitments.length - 1 ? true : false);
         }
 
         emit Deposit(_commitments, startingIndex, block.timestamp);
     }
 
 
-    function deposit(bytes32 _commitment) internal {
+    function deposit(bytes32 _commitment, bool updateRoot) internal {
         require(!commitments[_commitment], "The commitment has been submitted");
 
-        uint32 insertedIndex = _insert(_commitment);
+        uint32 insertedIndex = _insert(_commitment, updateRoot);
         commitments[_commitment] = true;
     }
 
