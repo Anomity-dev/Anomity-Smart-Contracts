@@ -8,7 +8,6 @@ import "./interfaces/IERC20.sol";
 import "./interfaces/IMockProfileCreationProxy.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 
-
 interface IVerifier {
     function verifyProof(
         uint[2] memory a,
@@ -67,6 +66,8 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         lensHubConnector = ILensHubConnector(_lensHubConnector);
         uniswapRouter = _uniswapRouter;
     }
+
+    fallback() external payable { }
 
     function checkAllowance(address _token, address _spender, uint256 _amount) internal view returns (bool) {
         return IERC20(_token).allowance(_spender, address(this)) >= _amount;
@@ -127,7 +128,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     }
 
 
-    function depositWithUSDC(bytes32[] memory _commitments) external nonReentrant {
+    function depositWithUSDC(bytes32[] memory _commitments, bool print) external nonReentrant {
         uint256 depositAmountForAll = depositAmount * _commitments.length;
 
         IERC20 usdc = IERC20(usdcAddress);
@@ -140,8 +141,10 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uint32 startingIndex = nextIndex;
 
         for (uint256 i = 0; i < _commitments.length; i++) {
-            deposit(_commitments[i], i == _commitments.length - 1 ? true : false);
+            require(!commitments[_commitments[i]], "The commitment has been submitted");
+            commitments[_commitments[i]] = true;
         }
+        _insertBulk(_commitments);
 
         emit Deposit(_commitments, startingIndex, block.timestamp);
     }

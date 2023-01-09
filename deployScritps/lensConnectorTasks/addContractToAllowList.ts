@@ -28,7 +28,7 @@ async function main() {
         await lensHUBConnectorTestnet.deployed();
 
         await lensHUBConnectorTestnet.setVerifiedAddress(
-            "0x4e50222ac79A474eCC6EF685312E3F59a0C0aa9a", true
+            "0xD638541009a61A280088bf0f762684A482EeB070", true
         )
         console.log("contract added", lensHUBConnectorTestnet.address);
     })
