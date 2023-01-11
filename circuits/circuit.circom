@@ -111,9 +111,6 @@ template Withdraw(levels) {
 
     signal postOrWithdrawSquare;
     postOrWithdrawSquare <== postOrWithdraw * postOrWithdraw;
-
-    signal relayerSquare;
-    relayerSquare <== relayer * relayer;
 }
 
-component main {public [root, nullifierHash, wordHash, postOrWithdraw, relayer]} = Withdraw(20); // This value  corresponds to width of tree (2^x)
+component main {public [root, nullifierHash, wordHash, postOrWithdraw]} = Withdraw(20); // This value  corresponds to width of tree (2^x)

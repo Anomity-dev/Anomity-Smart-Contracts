@@ -128,7 +128,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     }
 
 
-    function depositWithUSDC(bytes32[] memory _commitments, bool print) external nonReentrant {
+    function depositWithUSDC(bytes32[] memory _commitments) external nonReentrant {
         uint256 depositAmountForAll = depositAmount * _commitments.length;
 
         IERC20 usdc = IERC20(usdcAddress);

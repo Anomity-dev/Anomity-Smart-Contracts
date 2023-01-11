@@ -21,13 +21,13 @@ async function main() {
         //
         console.log("LensConnector ...", json[chainId]["LensHUBConnectorTestnet"],json[chainId]["LENSHub"] );
 
-        const lensHUB = await ethers.getContractAt("ILensHub", json[chainId]["LENSHub"]);
+        // const lensHUB = await ethers.getContractAt("ILensHub", json[chainId]["LENSHub"]);
         // // const lensHUB = await LensHUB.attach(json[chainId]["LENSHub"]);
-        await lensHUB.transferFrom(
-            "0x4e50222ac79A474eCC6EF685312E3F59a0C0aa9a",
-            json[chainId]["LensHUBConnectorTestnet"],
-            20759
-        )
+        // await lensHUB.transferFrom(
+        //     "0x4e50222ac79A474eCC6EF685312E3F59a0C0aa9a",
+        //     json[chainId]["LensHUBConnectorTestnet"],
+        //     20759
+        // )
         //
         const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorMainnet", owner);
         const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
@@ -41,7 +41,7 @@ async function main() {
         // )
 
         await lensHUBConnectorTestnet.switchProfile(
-            20759
+            108175
         )
         //
         // await lensHUBConnectorTestnet.setVerifiedAddress(
