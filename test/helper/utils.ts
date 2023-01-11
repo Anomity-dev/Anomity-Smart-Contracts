@@ -83,7 +83,6 @@ export async function makeDeposit(count: number, poolContract: any, tree: any, p
         deposits,
         print
     )
-    console.log("Deposits made", count, "\n")
 
     deposits.forEach((deposit, index) => {
         tree.insert(deposit)

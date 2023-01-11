@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "hardhat/console.sol";
-
 interface IHasher {
     function MiMCSponge(
         uint256 xL_in,
@@ -18,13 +16,8 @@ contract MerkleTreeWithHistory {
 
     uint32 public levels;
 
-    // the following variables are made public for easier testing and debugging and
-    // are not supposed to be accessed in regular code
-
-    // filledSubtrees and roots could be bytes32[size], but using mappings makes it cheaper because
-    // it removes index range check on every interaction
-    mapping(uint256 => bytes32) public filledSubtrees;
-    mapping(bytes32 => bool) public roots;
+    mapping(uint256 => bytes32) private filledSubtrees;
+    mapping(bytes32 => bool) private roots;
     bytes32 public currentRoot;
     uint32 public nextIndex = 0;
 

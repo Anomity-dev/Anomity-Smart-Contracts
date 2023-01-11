@@ -279,12 +279,4 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
             }
         }
     }
-
-    function calculateFee(address[] calldata path) public view returns (uint256) {
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
-
-        uint256[] memory amounts = uniswapRouter.getAmountsIn(depositAmount, path);
-
-        return amounts[0];
-    }
 }
