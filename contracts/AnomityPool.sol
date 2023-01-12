@@ -13,7 +13,7 @@ interface IVerifier {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[5] memory input
+        uint[4] memory input
     ) external view returns (bool);
 }
 
@@ -23,6 +23,11 @@ interface ILensHubConnector {
     ) external;
 }
 
+    struct ContentCommitmentData {
+        bytes32 hash;
+        uint256 blockNumber;
+    }
+
 contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     ILensHubConnector public lensHubConnector;
 
@@ -31,6 +36,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
 
     mapping(bytes32 => bool) public nullifierHashes;
+    mapping(bytes32 => uint256) public contentVerificationCommitBlockNumber;
     mapping(bytes32 => bool) public commitments;
 
     address public uniswapRouter;
@@ -67,7 +73,10 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uniswapRouter = _uniswapRouter;
     }
 
-    fallback() external payable { }
+    fallback() external payable {}
+
+    receive() external payable {}
+
 
     function checkAllowance(address _token, address _spender, uint256 _amount) internal view returns (bool) {
         return IERC20(_token).allowance(_spender, address(this)) >= _amount;
@@ -87,14 +96,12 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
 
 
     function swapMaticForUSDC(uint256 depositAmountForAll) internal returns (uint256) {
-        IUniswapV2Router02 uniswapRouter = IUniswapV2Router02(uniswapRouter);
-        address factory = uniswapRouter.factory();
-
+        IUniswapV2Router02 uniswapRouterObject = IUniswapV2Router02(uniswapRouter);
         address[] memory path = new address[](2);
-        path[0] = uniswapRouter.WETH();
+        path[0] = uniswapRouterObject.WETH();
         path[1] = usdcAddress;
 
-        uint256[] memory amounts = uniswapRouter.swapETHForExactTokens{value : msg.value}(depositAmountForAll, path, address(this), block.timestamp);
+        uint256[] memory amounts = uniswapRouterObject.swapETHForExactTokens{value : msg.value}(depositAmountForAll, path, address(this), block.timestamp);
 
         return amounts[0];
     }
@@ -149,12 +156,9 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         emit Deposit(_commitments, startingIndex, block.timestamp);
     }
 
-
-    function deposit(bytes32 _commitment, bool updateRoot) internal {
-        require(!commitments[_commitment], "The commitment has been submitted");
-
-        uint32 insertedIndex = _insert(_commitment, updateRoot);
-        commitments[_commitment] = true;
+    function setVerificationCommitment(bytes32 addressCommitment) public {
+        require(contentVerificationCommitBlockNumber[addressCommitment] == 0);
+        contentVerificationCommitBlockNumber[addressCommitment] = block.number;
     }
 
     function withdrawProof(uint[2] memory a,
@@ -167,14 +171,18 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     ) external nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
+
+        bytes32 addressCommitment = keccak256(abi.encode(_nullifierHash, relayer));
+        uint256 commitmentBlockNumber = contentVerificationCommitBlockNumber[addressCommitment];
+        require(commitmentBlockNumber > 0, "commitment is not send!");
+        require(block.number > commitmentBlockNumber + 1, "commitment is sent too soon!");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[5] memory pubSignals = [
+        uint[4] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(0),
-        uint256(uint160(relayer))
+        uint256(0)
         ];
 
         require(
@@ -201,16 +209,21 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         string memory contentIpfsURI,
         address relayer
     ) external nonReentrant {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(isKnownRoot(_root), "Cannot find your merkle root");
+        require(!nullifierHashes[_nullifierHash], "The note has been already spent!");
+        require(isKnownRoot(_root), "Cannot find your merkle root!");
+
+        bytes32 contentCommitment = keccak256(abi.encode(_nullifierHash));
+        ContentCommitmentData memory contentCommitmentData = contentVerificationCommitHashes[contentCommitment];
+        require(contentCommitmentData.blockNumber - block.number > 1, "commitment is not send or sent too soon!");
+        bytes32 addressCommitment = keccak256(abi.encode(_nullifierHash, relayer));
+        require(contentCommitmentData.hash == addressCommitment, "commitment does not match!");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[5] memory pubSignals = [
+        uint[4] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(1),
-        uint256(uint160(relayer))
+        uint256(1)
         ];
 
         require(
@@ -242,19 +255,17 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         uint[2] memory c,
         bytes32 _root,
         bytes32 _nullifierHash,
-        string memory contentIpfsURI,
-        address relayer
+        string memory contentIpfsURI
     ) public view returns (bool) {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
-        uint[5] memory pubSignals = [
+        uint[4] memory pubSignals = [
         uint256(_root),
         uint256(_nullifierHash),
         uint256(contentIpfsURIHash) >> 128,
-        uint256(1),
-        uint256(uint160(relayer))
+        uint256(1)
         ];
 
         return verifier.verifyProof(
