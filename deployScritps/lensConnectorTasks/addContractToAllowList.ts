@@ -22,13 +22,13 @@ async function main() {
 
         //
         console.log("LensConnector ...", json[chainId]["LensHUBConnectorTestnet"]);
-        const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorTestnet", owner);
+        const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorMainnet", owner);
         const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
         console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
         await lensHUBConnectorTestnet.deployed();
 
         await lensHUBConnectorTestnet.setVerifiedAddress(
-            "0xC14F4aD2F36eEC75DD6e6a1bD8010494ecB4F68A", true
+            "0xeC899B58730E810671C349939a60501160489528", true
         )
         console.log("contract added", lensHUBConnectorTestnet.address);
     })

@@ -36,7 +36,8 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable, IERC721Receiver {
     string public  handle;
     string public  imageURI;
 
-    event NewPost(address indexed author, uint256 indexed tokenId, string handle, string content);
+    event NewPost(address indexed relayer, uint256 indexed tokenId, string handle, string content);
+    event NewComment(address indexed relayer, uint256 indexed tokenId, string handle, uint256 profileIdPointed, uint256 pubIdPointed, string content);
 
     constructor(
         address _lensHub,
@@ -80,12 +81,12 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable, IERC721Receiver {
         require(verifiedAddresses[msg.sender], "Lens: sender is not verified");
 
         ILensHub.PostData memory data = ILensHub.PostData({
-            profileId : lensTokenId,
-            contentURI : word,
-            collectModule : COLLECT_MODULE,
-            collectModuleInitData : abi.encode(false),
-            referenceModule : address(0),
-            referenceModuleInitData : ""
+        profileId : lensTokenId,
+        contentURI : word,
+        collectModule : COLLECT_MODULE,
+        collectModuleInitData : abi.encode(false),
+        referenceModule : address(0),
+        referenceModuleInitData : ""
         });
 
 
@@ -93,5 +94,34 @@ contract LensHUBConnectorMainnet is ReentrancyGuard, Ownable, IERC721Receiver {
         hub.post(data);
 
         emit NewPost(msg.sender, lensTokenId, handle, word);
+    }
+
+
+    function comment(
+        uint256 profileIdPointed,
+        uint256 pubIdPointed,
+        string memory word
+    ) external nonReentrant {
+        require(lensTokenId > 0, "Lens: lensTokenId is not set");
+        require(verifiedAddresses[msg.sender], "Lens: sender is not verified");
+
+        ILensHub.CommentData memory data = ILensHub.CommentData({
+        profileId : lensTokenId,
+        profileIdPointed : profileIdPointed,
+        pubIdPointed : pubIdPointed,
+        contentURI : word,
+
+        collectModule : COLLECT_MODULE,
+        collectModuleInitData : abi.encode(false),
+        referenceModule : address(0),
+        referenceModuleInitData : "",
+        referenceModuleData : ""
+        });
+
+
+        ILensHub hub = ILensHub(HUB);
+        hub.comment(data);
+
+        emit NewComment(msg.sender, lensTokenId, handle, profileIdPointed, pubIdPointed, word);
     }
 }

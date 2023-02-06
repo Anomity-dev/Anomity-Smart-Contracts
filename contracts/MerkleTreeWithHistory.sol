@@ -20,6 +20,7 @@ contract MerkleTreeWithHistory {
     mapping(bytes32 => bool) private roots;
     bytes32 public currentRoot;
     uint32 public nextIndex = 0;
+    uint256 public batch = 0;
 
     constructor(uint32 _levels, IHasher _hasher) {
         require(_levels > 0, "_levels should be greater than zero");
@@ -63,10 +64,22 @@ contract MerkleTreeWithHistory {
 
     function _insertBulk(bytes32[] memory _leaves) internal {
         bytes32[] memory filledSubtreesTemp = new bytes32[](levels);
-        for (uint256 i = 0; i < levels; i++) {
-            filledSubtreesTemp[i] = filledSubtrees[i];
-        }
         uint256 index = nextIndex;
+
+        if (index + _leaves.length <= uint32(2) ** levels) {
+            for (uint32 i = 0; i < levels; i++) {
+                filledSubtreesTemp[i] = filledSubtrees[i];
+            }
+        } else {
+            for (uint32 i = 0; i < levels; i++) {
+                filledSubtreesTemp[i] = zeros(i);
+            }
+            batch++;
+            index = 0;
+            nextIndex = 0;
+        }
+
+
         bytes32 root = currentRoot;
         for (uint256 i = 0; i < _leaves.length; i++) {
             root = _insertLeafInTemp(_leaves[i], filledSubtreesTemp, index + i);
@@ -79,7 +92,7 @@ contract MerkleTreeWithHistory {
         roots[currentRoot] = true;
     }
 
-    function _insertLeafInTemp(bytes32 _leaf,bytes32[] memory filledSubtreesTemp, uint256 currentIndex) internal returns (bytes32) {
+    function _insertLeafInTemp(bytes32 _leaf, bytes32[] memory filledSubtreesTemp, uint256 currentIndex) internal view returns (bytes32) {
         bytes32 currentLevelHash = _leaf;
         bytes32 left;
         bytes32 right;
@@ -99,7 +112,7 @@ contract MerkleTreeWithHistory {
         return currentLevelHash;
     }
 
- function _insert(bytes32 _leaf, bool updateRoot) internal returns (uint32 index) {
+    function _insert(bytes32 _leaf, bool updateRoot) internal returns (uint32 index) {
         uint32 _nextIndex = nextIndex;
         require(_nextIndex != uint32(2) ** levels, "Merkle tree is full. No more leaves can be added");
         uint32 currentIndex = _nextIndex;

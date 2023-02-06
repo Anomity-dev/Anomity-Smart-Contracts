@@ -21,6 +21,12 @@ interface ILensHubConnector {
     function post(
         string memory _contentIPFSURI
     ) external;
+
+    function comment(
+        uint256 profileIdPointed,
+        uint256 pubIdPointed,
+        string memory _contentIPFSURI
+    ) external;
 }
 
     struct ContentCommitmentData {
@@ -46,7 +52,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
     uint256 lensTokenId;
     string handle;
 
-    event Deposit(bytes32[] commitment, uint32 leafIndex, uint256 timestamp);
+    event Deposit(bytes32[] commitment, uint32 leafIndex, uint256 timestamp, uint256 batch);
     event VerifyAndPost(bytes32 nullifierHash, address relayer, string contentIPFSURI);
 
     /**
@@ -153,7 +159,7 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         }
         _insertBulk(_commitments);
 
-        emit Deposit(_commitments, startingIndex, block.timestamp);
+        emit Deposit(_commitments, startingIndex, block.timestamp, batch);
     }
 
     function setVerificationCommitment(bytes32 addressCommitment) public {
@@ -212,11 +218,10 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent!");
         require(isKnownRoot(_root), "Cannot find your merkle root!");
 
-        bytes32 contentCommitment = keccak256(abi.encode(_nullifierHash));
-        ContentCommitmentData memory contentCommitmentData = contentVerificationCommitHashes[contentCommitment];
-        require(contentCommitmentData.blockNumber - block.number > 1, "commitment is not send or sent too soon!");
         bytes32 addressCommitment = keccak256(abi.encode(_nullifierHash, relayer));
-        require(contentCommitmentData.hash == addressCommitment, "commitment does not match!");
+        uint256 commitmentBlockNumber = contentVerificationCommitBlockNumber[addressCommitment];
+        require(commitmentBlockNumber > 0, "commitment is not send!");
+        require(block.number > commitmentBlockNumber + 1, "commitment is sent too soon!");
         bytes32 contentIpfsURIHash = keccak256(abi.encode(contentIpfsURI));
 
         uint[4] memory pubSignals = [
@@ -241,6 +246,59 @@ contract AnomityPool is MerkleTreeWithHistory, ReentrancyGuard {
         require(IERC20(usdcAddress).transfer(relayer, depositAmount), "Lens: transferFrom failed");
 
         lensHubConnector.post(contentIpfsURI);
+
+        emit VerifyAndPost(_nullifierHash, msg.sender, contentIpfsURI);
+    }
+
+
+    function verifyAndComment(
+        uint[2] memory a,
+        uint[2][2] memory b,
+        uint[2] memory c,
+        bytes32 _root,
+        bytes32 _nullifierHash,
+        uint256 profileIdPointed,
+        uint256 pubIdPointed,
+        string memory contentIpfsURI,
+        address relayer
+    ) external nonReentrant {
+        require(!nullifierHashes[_nullifierHash], "The note has been already spent!");
+        require(isKnownRoot(_root), "Cannot find your merkle root!");
+
+        bytes32 addressCommitment = keccak256(abi.encode(_nullifierHash, relayer));
+        uint256 commitmentBlockNumber = contentVerificationCommitBlockNumber[addressCommitment];
+        require(commitmentBlockNumber > 0, "commitment is not send!");
+        require(block.number > commitmentBlockNumber + 1, "commitment is sent too soon!");
+
+
+        bytes32 contentIpfsURIHash = keccak256(abi.encode(profileIdPointed, pubIdPointed, contentIpfsURI));
+
+        uint[4] memory pubSignals = [
+        uint256(_root),
+        uint256(_nullifierHash),
+        uint256(contentIpfsURIHash) >> 128,
+        uint256(2)
+        ];
+
+        require(
+            verifier.verifyProof(
+                a,
+                b,
+                c,
+                pubSignals
+            ),
+            "Invalid withdraw proof"
+        );
+
+        nullifierHashes[_nullifierHash] = true;
+
+        require(IERC20(usdcAddress).transfer(relayer, depositAmount), "Lens: transferFrom failed");
+
+        lensHubConnector.comment(
+            profileIdPointed,
+            pubIdPointed,
+            contentIpfsURI
+        );
 
         emit VerifyAndPost(_nullifierHash, msg.sender, contentIpfsURI);
     }

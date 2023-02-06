@@ -53,21 +53,22 @@ async function main() {
         const pool = await Pool.deploy(
             verifier.address,
             hasher.address,
-            20,
-            BigNumber.from("1000000"),
+            13,
+            BigNumber.from("200000"),
             LensHUBConnectorTestnet,
             "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
             usdcAddress
         );
         await pool.deployed();
-        console.log("pool deployed to:", pool.address);
         let n = await pool.deployTransaction.wait(1);
+        console.log("pool deployed to:", pool.address, n.blockNumber);
 
-        // console.log(json);
-        json[chainId] = {
-            ...json[chainId],
-            "pool": pool.address,
-            "startBlock": n.blockNumber,
+        if (json[chainId].pools) {
+            json[chainId].pools.push(pool.address);
+            json[chainId].startBlocks.push(n.blockNumber);
+        } else {
+            json[chainId].pools = [pool.address];
+            json[chainId].startBlocks = [n.blockNumber];
         }
         console.log(json[chainId], chainId, pool.address);
         fs.writeFile("address.json", JSON.stringify(json), (err: any) => {

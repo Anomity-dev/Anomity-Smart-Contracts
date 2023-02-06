@@ -23,14 +23,15 @@ async function main() {
         //
         console.log("LensConnector ...", json[chainId]["LensHUBConnectorTestnet"]);
         const LensHUBConnectorTestnet = await ethers.getContractFactory("LensHUBConnectorMainnet", owner);
-        const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
+        // const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach(json[chainId]["LensHUBConnectorTestnet"]);
+        const lensHUBConnectorTestnet = await LensHUBConnectorTestnet.attach("0x58172f5f0F997576Fe31AC1DA44a3219c88b2f14");
         console.log("LensHUBConnectorTestnet deployed to:", lensHUBConnectorTestnet.address);
         await lensHUBConnectorTestnet.deployed();
 
         console.log("adding a new post",await lensHUBConnectorTestnet.lensTokenId());
 
         await lensHUBConnectorTestnet.post(
-            "https://gateway.pinata.cloud/ipfs/bafkreifkbzmjrniy646unakjdwozza6x4jgzzm2aydvcehqrbsyt7ydfzu"
+            "https://dev-api.histopia.io/anom-api/testPost"
         )
 
         console.log("Post uploaded", lensHUBConnectorTestnet.address);

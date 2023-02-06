@@ -28,6 +28,19 @@ interface ILensHub is IERC721{
     bytes referenceModuleInitData;
   }
 
+  struct CommentData {
+    uint256 profileId;
+    string contentURI;
+    uint256 profileIdPointed;
+    uint256 pubIdPointed;
+
+    bytes referenceModuleData;
+    address collectModule;
+    bytes collectModuleInitData;
+    address referenceModule;
+    bytes referenceModuleInitData;
+  }
+
   /**
    * @notice Publishes a post to a given profile, must be called by the profile owner.
    *
@@ -36,6 +49,8 @@ interface ILensHub is IERC721{
    * @return uint256 An integer representing the post's publication ID.
    */
   function post(PostData calldata vars) external returns (uint256);
+
+  function comment(CommentData calldata vars) external returns (uint256);
 
   function tokenOfOwnerByIndex(address owner, uint256 index) external returns (uint256);
 }
