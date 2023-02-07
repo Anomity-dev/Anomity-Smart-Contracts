@@ -35,13 +35,13 @@ async function main() {
         // //
         // console.log("LensHUBConnectorTestnet deployed to:", await lensHUBConnectorTestnet.lensTokenId());
         // //
-        await lensHUBConnectorTestnet.returnProfileNFT(
-            108203
-        )
-
-        // await lensHUBConnectorTestnet.switchProfile(
+        // await lensHUBConnectorTestnet.returnProfileNFT(
         //     108203
         // )
+
+        await lensHUBConnectorTestnet.switchProfile(
+            108203
+        )
     })
 }
 
